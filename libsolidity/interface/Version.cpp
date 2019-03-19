@@ -44,7 +44,33 @@ string const dev::solidity::VersionStringStrict =
 	(string(SOL_VERSION_PRERELEASE).empty() ? "" : "-" + string(SOL_VERSION_PRERELEASE)) +
 	(string(SOL_VERSION_COMMIT).empty() ? "" : "+" + string(SOL_VERSION_COMMIT));
 
-bytes const dev::solidity::VersionCompactBytes = binaryVersion();
+bytes const dev::solidity::VersionCompactBytes = compactBinaryVersion();
+
+bool const dev::solidity::VersionIsRelease = string(SOL_VERSION_PRERELEASE).empty();
+
+bytes dev::solidity::compactBinaryVersion()
+{
+	bytes ret{};
+	size_t i = 0;
+	auto parseDecimal = [&]()
+	{
+		size_t ret = 0;
+		solAssert('0' <= VersionString[i] && VersionString[i] <= '9', "");
+		for (; i < VersionString.size() && '0' <= VersionString[i] && VersionString[i] <= '9'; ++i)
+			ret = ret * 10 + (VersionString[i] - '0');
+		return ret;
+	};
+	ret.push_back(uint8_t(parseDecimal()));
+	solAssert(i < VersionString.size() && VersionString[i] == '.', "");
+	++i;
+	ret.push_back(uint8_t(parseDecimal()));
+	solAssert(i < VersionString.size() && VersionString[i] == '.', "");
+	++i;
+	ret.push_back(uint8_t(parseDecimal()));
+	solAssert(ret.size() == 3, "");
+
+	return ret;
+}
 
 bytes dev::solidity::binaryVersion()
 {
@@ -78,4 +104,3 @@ bytes dev::solidity::binaryVersion()
 
 	return ret;
 }
-
