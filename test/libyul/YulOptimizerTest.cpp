@@ -187,6 +187,8 @@ bool YulOptimizerTest::run(ostream& _stream, string const& _linePrefix, bool con
 	{
 		disambiguate();
 		ExpressionSimplifier::run(*m_dialect, *m_ast);
+		ExpressionSimplifier::run(*m_dialect, *m_ast);
+		ExpressionSimplifier::run(*m_dialect, *m_ast);
 	}
 	else if (m_optimizerStep == "fullSimplify")
 	{
