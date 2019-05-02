@@ -50,6 +50,7 @@ public:
 	bool visit(Continue const& _continueStatement) override;
 	bool visit(Break const& _breakStatement) override;
 	bool visit(Return const& _return) override;
+	void endVisit(UnaryOperation const& _unaryOperation) override;
 	void endVisit(BinaryOperation const& _binOp) override;
 	bool visit(FunctionCall const& _funCall) override;
 	bool visit(InlineAssembly const& _inlineAsm) override;

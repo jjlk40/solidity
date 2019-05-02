@@ -188,6 +188,16 @@ bool IRGeneratorForStatements::visit(Return const& _return)
 	return false;
 }
 
+void IRGeneratorForStatements::endVisit(UnaryOperation const& _unaryOperation)
+{
+	if (_unaryOperation.annotation().type->category() == Type::Category::RationalNumber)
+		defineExpression(_unaryOperation) <<
+			formatNumber(_unaryOperation.annotation().type->literalValue(nullptr)) <<
+			"\n";
+	else
+		solUnimplementedAssert(false, "");
+}
+
 void IRGeneratorForStatements::endVisit(BinaryOperation const& _binOp)
 {
 	solAssert(!!_binOp.annotation().commonType, "");
