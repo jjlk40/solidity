@@ -22,12 +22,15 @@
 
 #include <libsolidity/codegen/ir/IRGenerationContext.h>
 #include <libsolidity/codegen/YulUtilFunctions.h>
+#include <libsolidity/codegen/ABIFunctions.h>
+#include <libsolidity/codegen/CompilerUtils.h>
 #include <libsolidity/ast/TypeProvider.h>
 
 #include <libyul/AsmPrinter.h>
 #include <libyul/AsmData.h>
 #include <libyul/optimiser/ASTCopier.h>
 
+#include <libdevcore/Whiskers.h>
 #include <libdevcore/StringUtils.h>
 
 using namespace std;
@@ -299,6 +302,62 @@ void IRGeneratorForStatements::endVisit(FunctionCall const& _functionCall)
 			"(" <<
 			joinHumanReadable(args) <<
 			")\n";
+		break;
+	}
+	case FunctionType::Kind::Event:
+	{
+		auto const& event = dynamic_cast<EventDefinition const&>(functionType->declaration());
+		TypePointers paramTypes = functionType->parameterTypes();
+		ABIFunctions abi(m_context.evmVersion(), m_context.functionCollector());
+
+		vector<string> indexedArgs;
+		vector<string> nonIndexedArgs;
+		TypePointers nonIndexedArgTypes;
+		TypePointers nonIndexedParamTypes;
+		for (size_t i = 0; i < event.parameters().size(); ++i)
+		{
+			Expression const& arg = *arguments[i];
+			if (event.parameters()[i]->isIndexed())
+			{
+				string value;
+				indexedArgs.emplace_back(m_context.newYulVariable());
+				if (auto const& referenceType = dynamic_cast<ReferenceType const*>(paramTypes[i]))
+					value =
+						m_utils.packedHashFunction({arg.annotation().type}, {referenceType}) +
+						"(" +
+						m_context.variable(arg) +
+						")";
+				else
+					value = expressionAsType(arg, *paramTypes[i]);
+				m_code << "let " << indexedArgs.back() << " := " << value << "\n";
+			}
+			else
+			{
+				nonIndexedArgs.emplace_back(m_context.variable(arg));
+				nonIndexedArgTypes.push_back(arg.annotation().type);
+				nonIndexedParamTypes.push_back(paramTypes[i]);
+			}
+		}
+		if (!event.isAnonymous())
+		{
+			indexedArgs.emplace_back(m_context.newYulVariable());
+			string signature = formatNumber(u256(h256::Arith(dev::keccak256(functionType->externalSignature()))));
+			m_code << "let " << indexedArgs.back() << " := " << signature << "\n";
+		}
+		solAssert(indexedArgs.size() <= 4, "Too many indexed arguments.");
+		Whiskers templ(R"({
+			let <pos> := mload(<freeMemoryPointer>)
+			let <end> := <encode>(<pos> <nonIndexedArgs>)
+			<log>(<pos>, sub(<end>, <pos>) <indexedArgs>)
+		})");
+		templ("pos", m_context.newYulVariable());
+		templ("end", m_context.newYulVariable());
+		templ("freeMemoryPointer", to_string(CompilerUtils::freeMemoryPointer));
+		templ("encode", abi.tupleEncoder(nonIndexedArgTypes, nonIndexedParamTypes));
+		templ("nonIndexedArgs", joinHumanReadablePrefixed(nonIndexedArgs));
+		templ("log", "log" + to_string(indexedArgs.size()));
+		templ("indexedArgs", joinHumanReadablePrefixed(indexedArgs));
+		defineExpression(_functionCall) << templ.render();
 		break;
 	}
 	default:

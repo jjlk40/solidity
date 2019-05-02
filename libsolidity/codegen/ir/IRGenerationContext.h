@@ -74,6 +74,8 @@ public:
 
 	std::string internalDispatch(size_t _in, size_t _out);
 
+	langutil::EVMVersion evmVersion() const { return m_evmVersion; }
+
 private:
 	langutil::EVMVersion m_evmVersion;
 	OptimiserSettings m_optimiserSettings;
