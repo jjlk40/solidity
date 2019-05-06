@@ -30,8 +30,25 @@ void VariableUsage::endVisit(Identifier const& _identifier)
 	Declaration const* declaration = _identifier.annotation().referencedDeclaration;
 	solAssert(declaration, "");
 	if (VariableDeclaration const* varDecl = dynamic_cast<VariableDeclaration const*>(declaration))
-		if (_identifier.annotation().lValueRequested)
+	{
+		bool isLocal = varDecl->isLocalVariable();
+		bool inOuterFunction = false;
+		if (isLocal)
+		{
+			solAssert(m_outerFunction, "");
+			auto const& localVars = m_outerFunction->localVariables();
+			inOuterFunction = find(localVars.begin(), localVars.end(), varDecl) != localVars.end();
+			auto const& retVars = m_outerFunction->returnParameters();
+			inOuterFunction |= find_if(retVars.begin(), retVars.end(), [&] (auto var) { return var.get() == varDecl; }) != retVars.end();
+			auto const& paramVars = m_outerFunction->parameters();
+			inOuterFunction |= find_if(paramVars.begin(), paramVars.end(), [&] (auto var) { return var.get() == varDecl; }) != paramVars.end();
+		}
+		if (
+			_identifier.annotation().lValueRequested &&
+			(!isLocal || inOuterFunction)
+		)
 			m_touchedVariables.insert(varDecl);
+	}
 }
 
 void VariableUsage::endVisit(FunctionCall const& _funCall)
@@ -74,6 +91,7 @@ set<VariableDeclaration const*> VariableUsage::touchedVariables(ASTNode const& _
 	m_touchedVariables.clear();
 	m_functionPath.clear();
 	m_functionPath += _outerCallstack;
+	m_outerFunction = m_functionPath.back();
 	_node.accept(*this);
 	return m_touchedVariables;
 }
