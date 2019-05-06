@@ -2,6 +2,6 @@
 ======= data_storage/input.sol:C =======
 Gas estimation:
 construction:
-   294 + 255000 = 255294
+   306 + 264000 = 264306
 external:
    f():	252

@@ -2,7 +2,7 @@
 ======= gas_test_dispatch_optimize/input.sol:Large =======
 Gas estimation:
 construction:
-   300 + 260000 = 260300
+   312 + 269000 = 269312
 external:
    a():	398
    b(uint256):	1105
@@ -30,7 +30,7 @@ external:
 ======= gas_test_dispatch_optimize/input.sol:Medium =======
 Gas estimation:
 construction:
-   183 + 140400 = 140583
+   196 + 149400 = 149596
 external:
    a():	398
    b(uint256):	863
@@ -45,7 +45,7 @@ external:
 ======= gas_test_dispatch_optimize/input.sol:Small =======
 Gas estimation:
 construction:
-   111 + 63600 = 63711
+   123 + 72600 = 72723
 external:
    fallback:	118
    a():	376
