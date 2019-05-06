@@ -36,12 +36,9 @@ extern std::string const VersionStringStrict;
 extern bytes const VersionCompactBytes;
 extern bool const VersionIsRelease;
 
-/// @returns a binary form of the version string, where A.B.C-HASH is encoded such that
-/// the first byte is zero, the following three bytes encode A B and C (interpreted as decimals)
-/// and HASH is interpreted as 8 hex digits and encoded into the last four bytes.
+/// @returns a binary form of the version string, where A.B.C is encoded into three bytes that
+/// encode A B and C (interpreted as decimals).
 bytes binaryVersion();
-
-bytes compactBinaryVersion();
 
 }
 }
