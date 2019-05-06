@@ -120,7 +120,7 @@ bool IRGeneratorForStatements::visit(Assignment const& _assignment)
 	m_code <<
 		varName <<
 		" := " <<
-		expressionAsType(_assignment.rightHandSide(), *lvalue.annotation().type) <<
+		expressionAsType(_assignment.rightHandSide(), type(lvalue)) <<
 		"\n";
 	defineExpression(_assignment) << varName << "\n";
 
@@ -190,9 +190,9 @@ bool IRGeneratorForStatements::visit(Return const& _return)
 
 void IRGeneratorForStatements::endVisit(UnaryOperation const& _unaryOperation)
 {
-	if (_unaryOperation.annotation().type->category() == Type::Category::RationalNumber)
+	if (type(_unaryOperation).category() == Type::Category::RationalNumber)
 		defineExpression(_unaryOperation) <<
-			formatNumber(_unaryOperation.annotation().type->literalValue(nullptr)) <<
+			formatNumber(type(_unaryOperation).literalValue(nullptr)) <<
 			"\n";
 	else
 		solUnimplementedAssert(false, "");
@@ -268,22 +268,22 @@ bool IRGeneratorForStatements::visit(FunctionCall const& _functionCall)
 		"This type of function call is not yet implemented"
 	);
 
-	TypePointer const funcType = _functionCall.expression().annotation().type;
+	Type const& funcType = type(_functionCall.expression());
 
 	if (_functionCall.annotation().kind == FunctionCallKind::TypeConversion)
 	{
-		solAssert(funcType->category() == Type::Category::TypeType, "Expected category to be TypeType");
+		solAssert(funcType.category() == Type::Category::TypeType, "Expected category to be TypeType");
 		solAssert(_functionCall.arguments().size() == 1, "Expected one argument for type conversion");
 		_functionCall.arguments().front()->accept(*this);
 
 		defineExpression(_functionCall) <<
-			expressionAsType(*_functionCall.arguments().front(), *_functionCall.annotation().type) <<
+			expressionAsType(*_functionCall.arguments().front(), type(_functionCall)) <<
 			"\n";
 
 		return false;
 	}
 
-	FunctionTypePointer functionType = dynamic_cast<FunctionType const*>(funcType);
+	FunctionTypePointer functionType = dynamic_cast<FunctionType const*>(&funcType);
 
 	TypePointers parameterTypes = functionType->parameterTypes();
 	vector<ASTPointer<Expression const>> const& callArguments = _functionCall.arguments();
@@ -383,14 +383,14 @@ bool IRGeneratorForStatements::visit(Identifier const& _identifier)
 
 bool IRGeneratorForStatements::visit(Literal const& _literal)
 {
-	TypePointer type = _literal.annotation().type;
+	Type const& literalType = type(_literal);
 
-	switch (type->category())
+	switch (literalType.category())
 	{
 	case Type::Category::RationalNumber:
 	case Type::Category::Bool:
 	case Type::Category::Address:
-		defineExpression(_literal) << toCompactHexWithPrefix(type->literalValue(&_literal)) << "\n";
+		defineExpression(_literal) << toCompactHexWithPrefix(literalType.literalValue(&_literal)) << "\n";
 		break;
 	case Type::Category::StringLiteral:
 		break; // will be done during conversion
@@ -402,7 +402,7 @@ bool IRGeneratorForStatements::visit(Literal const& _literal)
 
 string IRGeneratorForStatements::expressionAsType(Expression const& _expression, Type const& _to)
 {
-	Type const& from = *_expression.annotation().type;
+	Type const& from = type(_expression);
 	if (from.sizeOnStack() == 0)
 	{
 		solAssert(from != _to, "");
@@ -422,4 +422,10 @@ string IRGeneratorForStatements::expressionAsType(Expression const& _expression,
 ostream& IRGeneratorForStatements::defineExpression(Expression const& _expression)
 {
 	return m_code << "let " << m_context.variable(_expression) << " := ";
+}
+
+Type const& IRGeneratorForStatements::type(Expression const& _expression) const
+{
+	solAssert(_expression.annotation().type, "Type of expression not set.");
+	return *_expression.annotation().type;
 }

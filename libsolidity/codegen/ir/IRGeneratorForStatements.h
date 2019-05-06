@@ -63,6 +63,8 @@ private:
 	std::string expressionAsType(Expression const& _expression, Type const& _to);
 	std::ostream& defineExpression(Expression const& _expression);
 
+	Type const& type(Expression const& _expression) const;
+
 	std::ostringstream m_code;
 	IRGenerationContext& m_context;
 	YulUtilFunctions& m_utils;
