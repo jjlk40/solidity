@@ -86,6 +86,8 @@ public:
 
 	std::string internalDispatch(size_t _in, size_t _out);
 
+	langutil::EVMVersion evmVersion() const { return m_evmVersion; }
+
 	/// @returns a new copy of the utility function generator (but using the same function set).
 	YulUtilFunctions utils();
 
